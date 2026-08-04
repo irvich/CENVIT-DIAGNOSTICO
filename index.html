@@ -111,4 +111,70 @@ practicalForm.onsubmit=e=>{e.preventDefault();if(!practicalForm.checkValidity())
 const originalRenderAdmin=renderAdmin;renderAdmin=function(){originalRenderAdmin();document.querySelectorAll('#records tr').forEach(tr=>{const id=tr.querySelector('button')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1],r=getRecords().find(x=>x.id===id);if(r&&tr.cells[5])tr.cells[5].innerHTML=r.practicalCompleted?(r.eligibleFinal?'Sí · Validado':'No · Validado'):'Pendiente'})};
 renderAdmin();
 })();
+</script>
+<script>
+(()=>{
+const SUPABASE_URL='https://fxgwgzismprmarnwogay.supabase.co';
+const SUPABASE_KEY='sb_publishable_DnGsERDoz9XISCmFL37C2g_rmgEZMrM';
+let centralToken=sessionStorage.getItem('cenvit-admin-token')||'';
+const adminBody=document.querySelector('#admin .modal-body');
+const centralBox=document.createElement('div');
+centralBox.id='centralAccess';
+centralBox.className='notice';
+adminBody.prepend(centralBox);
+
+function centralHeaders(token=''){
+ return {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+(token||SUPABASE_KEY),'Content-Type':'application/json'};
+}
+function toCentral(r){return{
+ participant_id:r.id,nombre:r.name,correo:r.email,whatsapp:r.phone||null,profesion:r.profession||null,
+ sector:r.sector||null,equipo:r.device||null,cuenta_chatgpt:r.account||null,otras_herramientas:r.tools||null,
+ tareas_tiempo:r.timeTasks||null,objetivo:r.goal||null,producto:r.product||null,documentos:r.documents||null,
+ respuestas_profesionales:r.cp||[],respuestas_ia:r.av||[],puntaje_profesional:r.profScore,
+ nivel_profesional:r.profLevel,puntaje_ia:r.aiScore,nivel_ia:r.aiLevel,fortalezas:r.strengths||[],
+ necesidades:r.needs||[],elegible_declarado:!!r.eligible,registro_completo:r
+ }}
+function fromCentral(x){const r=x.registro_completo||{};return{...r,id:x.participant_id||x.id,date:x.created_at,name:x.nombre,email:x.correo,
+ phone:x.whatsapp,profession:x.profesion,sector:x.sector,device:x.equipo,account:x.cuenta_chatgpt,tools:x.otras_herramientas,
+ timeTasks:x.tareas_tiempo,goal:x.objetivo,product:x.producto,documents:x.documentos,cp:x.respuestas_profesionales||[],
+ av:x.respuestas_ia||[],profScore:Number(x.puntaje_profesional||0),profLevel:x.nivel_profesional,aiScore:Number(x.puntaje_ia||0),
+ aiLevel:x.nivel_ia,strengths:x.fortalezas||[],needs:x.necesidades||[],eligible:!!x.elegible_declarado,
+ practicalCompleted:!!x.prueba_practica_completada,practicalScore:x.puntaje_practico,practicalDate:x.fecha_prueba_practica,
+ eligibleFinal:x.elegible_final}}
+async function sendCentral(r){
+ try{const res=await fetch(SUPABASE_URL+'/rest/v1/diagnosticos',{method:'POST',headers:{...centralHeaders(),'Prefer':'return=minimal'},body:JSON.stringify(toCentral(r))});
+  if(!res.ok)throw new Error(await res.text());localStorage.setItem('cenvit-last-sync','ok');
+ }catch(e){localStorage.setItem('cenvit-last-sync','pending');console.warn('Sincronización pendiente',e)}
+}
+async function loadCentral(){
+ const res=await fetch(SUPABASE_URL+'/rest/v1/diagnosticos?select=*&order=created_at.desc',{headers:centralHeaders(centralToken)});
+ if(res.status===401||res.status===403){logoutCentral();throw new Error('Sesión vencida')}
+ if(!res.ok)throw new Error(await res.text());const rows=await res.json();saveRecords(rows.map(fromCentral));renderAdmin();showCentralState(true,rows.length);
+}
+function setAdminVisibility(show){adminBody.querySelectorAll(':scope>p,.kpis,.toolbar,.table-wrap').forEach(x=>x.classList.toggle('hidden',!show))}
+function showCentralState(logged,count){
+ setAdminVisibility(logged);
+ centralBox.innerHTML=logged?`<strong>Base central conectada</strong><br>${count??''} registros disponibles. <button type="button" class="btn secondary" id="refreshCentral">Actualizar</button> <button type="button" class="btn secondary" id="logoutCentral">Cerrar sesión</button>`:
+ `<strong>Acceso administrativo CENVIT</strong><p>Inicia sesión para consultar los registros centralizados.</p><div class="grid"><div class="field"><label>Correo</label><input id="centralEmail" type="email" value="cenvit.edu.ec@gmail.com"></div><div class="field"><label>Contraseña</label><input id="centralPassword" type="password"></div></div><button type="button" class="btn primary" id="loginCentral">Ingresar al panel</button><p id="centralMessage"></p>`;
+ if(logged){document.getElementById('refreshCentral').onclick=()=>loadCentral().catch(showCentralError);document.getElementById('logoutCentral').onclick=logoutCentral}
+ else document.getElementById('loginCentral').onclick=loginCentral;
+}
+function showCentralError(e){const m=document.getElementById('centralMessage');if(m)m.textContent='No fue posible ingresar. Verifica el correo y la contraseña.';console.warn(e)}
+async function loginCentral(){
+ const email=document.getElementById('centralEmail').value.trim(),password=document.getElementById('centralPassword').value;
+ const res=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:centralHeaders(),body:JSON.stringify({email,password})});
+ if(!res.ok){showCentralError(new Error(await res.text()));return}const data=await res.json();centralToken=data.access_token;sessionStorage.setItem('cenvit-admin-token',centralToken);await loadCentral().catch(showCentralError)
+}
+function logoutCentral(){centralToken='';sessionStorage.removeItem('cenvit-admin-token');showCentralState(false)}
+showCentralState(!!centralToken);
+if(centralToken)loadCentral().catch(()=>showCentralState(false));
+
+form.addEventListener('submit',()=>setTimeout(()=>{const r=getRecords()[0];if(r)sendCentral(r)},20));
+const oldPracticalSubmit=practicalForm.onsubmit;
+practicalForm.onsubmit=e=>{const id=activeRecordId;oldPracticalSubmit(e);setTimeout(async()=>{if(!centralToken)return;const r=getRecords().find(x=>x.id===id);if(!r?.practicalCompleted)return;await fetch(SUPABASE_URL+'/rest/v1/diagnosticos?participant_id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{...centralHeaders(centralToken),'Prefer':'return=minimal'},body:JSON.stringify({prueba_practica_completada:true,puntaje_practico:r.practicalScore,fecha_prueba_practica:r.practicalDate,elegible_final:r.eligibleFinal})});loadCentral().catch(showCentralError)},30)};
+const oldOpenAdmin=document.getElementById('openAdmin').onclick;
+document.getElementById('openAdmin').onclick=()=>{oldOpenAdmin();centralToken?loadCentral().catch(showCentralError):showCentralState(false)};
+const oldShowAdmin=document.getElementById('showAdminFromResult').onclick;
+document.getElementById('showAdminFromResult').onclick=()=>{oldShowAdmin();centralToken?loadCentral().catch(showCentralError):showCentralState(false)};
+})();
 </script></body></html>
