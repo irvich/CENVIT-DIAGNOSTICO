@@ -1,0 +1,1 @@
+Paquete cifrado (AES-256) para instalar la plataforma CENVIT en su servidor. Sin la clave no es legible. Rama temporal: se elimina después de la instalación.
