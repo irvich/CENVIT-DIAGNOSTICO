@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Simulador de Entrevista PRO · Acceso de alumnos · CENVIT</title>
+<meta name="description" content="Simulador avanzado de entrevista personal de ingreso para alumnos de CENVIT.">
+<meta name="robots" content="noindex">
+<meta property="og:image" content="https://cenvit.net/icons/icon-512.png">
+<meta name="theme-color" content="#0b2a4a">
+<link rel="icon" href="/icons/icon-192.png">
+<script src="/psicometria/assets/psicometria.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: institutional workbook — navy header band, one working column, test screens as numbered stations */
+:root{
+  --bg:#f5f7fb; --surface:#ffffff; --fg:#14223a; --muted:#56637a; --line:#d8dfeb;
+  --navy:#0b2a4a; --navy-fg:#ffffff; --gold:#e3a800; --gold-soft:#fff3cc; --sky:#2b8fd6; --sky-soft:#e3f1fb;
+  --ok:#1f8a4c; --ok-soft:#e2f4ea; --bad:#c0392b; --bad-soft:#fbe7e4;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1524; --surface:#132036; --fg:#e8eef8; --muted:#a3b1c7; --line:#253652;
+  --navy:#08182c; --navy-fg:#ffffff; --gold:#f2bf2e; --gold-soft:#3a2f0c; --sky:#5fb2ee; --sky-soft:#13304a;
+  --ok:#4cc27e; --ok-soft:#123323; --bad:#ef7b6d; --bad-soft:#3a1915; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1524; --surface:#132036; --fg:#e8eef8; --muted:#a3b1c7; --line:#253652;
+  --navy:#08182c; --navy-fg:#ffffff; --gold:#f2bf2e; --gold-soft:#3a2f0c; --sky:#5fb2ee; --sky-soft:#13304a;
+  --ok:#4cc27e; --ok-soft:#123323; --bad:#ef7b6d; --bad-soft:#3a1915; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.band{background:var(--navy);color:var(--navy-fg);position:sticky;top:env(safe-area-inset-top,0px);z-index:5;border-bottom:3px solid var(--gold)}
+header.band .wrap{display:flex;align-items:center;gap:12px;padding-block:10px}
+header.band img{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:8px;padding:3px}
+.brand{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+.brand b{font:700 1.25rem var(--f-display);letter-spacing:.04em}
+.brand span{font-size:.8rem;opacity:.85}
+.timer{margin-left:auto;font:500 1.1rem var(--f-mono);background:rgba(255,255,255,.12);padding:4px 10px;border-radius:6px;font-variant-numeric:tabular-nums}
+.timer.low{background:var(--bad);color:#fff}
+main{padding-block:24px 48px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.1;margin:0}
+h1{font-size:clamp(2rem,6vw,2.9rem);font-weight:700;color:var(--fg)}
+h2{font-size:1.7rem;font-weight:700}
+h3{font-size:1.25rem;font-weight:600}
+p{margin:0}
+.stack{display:flex;flex-direction:column;gap:16px}
+.lead{font-size:1.08rem;color:var(--muted);max-width:65ch}
+.eyebrow{font:600 .78rem var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--sky)}
+.notice{border-left:4px solid var(--gold);background:var(--gold-soft);padding:12px 14px;border-radius:0 8px 8px 0;font-size:.95rem}
+.stations{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.station{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.station .num{font:700 2rem var(--f-display);color:var(--gold);line-height:1}
+.station p{color:var(--muted);font-size:.95rem}
+.station .meta{font-size:.82rem;color:var(--muted);margin-top:auto}
+.chip{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--sky-soft);color:var(--sky)}
+.chip.done{background:var(--ok-soft);color:var(--ok)}
+button{font:600 1rem var(--f-body);cursor:pointer;border-radius:8px;border:1px solid transparent;padding:10px 16px}
+button:focus-visible,.opt:focus-visible,.cellbtn:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.btn{background:var(--navy);color:var(--navy-fg)}
+.btn.gold{background:var(--gold);color:#14223a}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+ul.clean{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+.q{font-size:1.15rem;font-weight:600}
+.progress{height:6px;background:var(--line);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--gold)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.opt{background:var(--surface);color:var(--fg);border:2px solid var(--line);text-align:left;display:flex;gap:10px;align-items:center;min-width:0}
+.opt .k{font:700 1rem var(--f-display);color:var(--sky);min-width:1.2em}
+.opt.sel{border-color:var(--sky);background:var(--sky-soft)}
+.fig{color:var(--fg)}
+.fig svg{display:block;width:100%;height:auto}
+.matrix{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:330px;margin:0 auto}
+.matrix>div{aspect-ratio:1;border:1px solid var(--line);border-radius:6px;background:var(--surface);max-width:100%}
+.matrix .miss{display:grid;place-items:center;font:700 2rem var(--f-display);color:var(--gold);border-style:dashed;border-color:var(--gold)}
+.opts.figs{grid-template-columns:repeat(4,1fr)}
+.opts.figs .opt{flex-direction:column;padding:8px}
+.opts.figs .opt .fig{width:100%;max-width:110px}
+.model{max-width:150px;margin:0 auto;border:2px solid var(--gold);border-radius:8px;padding:6px;background:var(--surface)}
+.likert{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.likert button{background:var(--surface);color:var(--fg);border:1px solid var(--line);padding:8px 2px;font-size:.8rem;line-height:1.2}
+.likert button.sel{background:var(--navy);color:var(--navy-fg);border-color:var(--navy)}
+.pitem{display:flex;flex-direction:column;gap:8px;padding-block:12px;border-bottom:1px solid var(--line)}
+.grid-att{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;max-width:560px}
+.cellbtn{background:var(--surface);border:1px solid var(--line);padding:2px;border-radius:6px;aspect-ratio:1;color:var(--fg);max-width:100%}
+.cellbtn.mk{background:var(--sky-soft);border-color:var(--sky)}
+.cellbtn svg{width:100%;height:100%;display:block}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+th{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.tablewrap{overflow-x:auto}
+.bar{height:12px;background:var(--line);border-radius:99px;overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%;background:var(--sky)}
+.rev{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:8px}
+.rev.ok{background:var(--ok-soft)} .rev.bad{background:var(--bad-soft)}
+.small{font-size:.88rem;color:var(--muted)}
+textarea{width:100%;min-height:150px;font:14px/1.5 var(--f-mono);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px}
+footer{border-top:1px solid var(--line);padding-block:16px 28px;font-size:.82rem;color:var(--muted)}
+@media (max-width:520px){.opts.figs{grid-template-columns:repeat(2,1fr)}.likert button{font-size:.72rem}.grid-att{grid-template-columns:repeat(6,1fr)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+a.btn{display:inline-flex;align-items:center;padding:10px 16px;border-radius:8px;font-weight:600;text-decoration:none}
+.lock{max-width:560px;margin:40px auto;text-align:center}
+.badge{display:inline-block;font-size:.8rem;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--ok-soft);color:var(--ok)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.check input{width:20px;height:20px;margin-top:2px;flex:none}
+input[type=text]{width:100%;font:15px var(--f-body);padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+</style>
+</head>
+<body>
+
+<header class="band"><div class="wrap">
+  <img src="/psicometria/assets/logo-cenvit.png" alt="Escudo CENVIT">
+  <div class="brand"><b>CENVIT · PRO</b><span>Entrevista Personal de Ingreso</span></div>
+  <div class="timer" id="timer" hidden>00:00</div>
+  <a href="/dashboard" style="color:#fff;margin-left:12px;font-size:.92rem;white-space:nowrap;text-decoration:underline">Mi curso</a>
+</div></header>
+<main class="wrap" id="app"><p class="lead" style="margin-top:40px">Verificando su acceso…</p></main>
+<footer class="wrap">Simulador exclusivo para alumnos de la Preparación para la Entrevista Personal de Ingreso de CENVIT. Preguntas de práctica elaboradas por CENVIT; no reproduce entrevistas oficiales. CENVIT no forma parte de ningún proceso oficial de selección y no garantiza el ingreso. Responda siempre con la verdad.</footer>
+
+<script>
+(function(){
+const CURSOS=[5802,5803];          // Preparación para la Entrevista Personal de Ingreso (virtual y presencial)
+const DIAS_ACCESO=7;
+const WA='593964004110';
+const $app=document.getElementById('app'),$timer=document.getElementById('timer');
+const store={get(k,d){try{const v=localStorage.getItem('cenvit_pro_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('cenvit_pro_'+k,JSON.stringify(v))}catch(e){}}};
+let tick=null;
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function stopTimer(){clearInterval(tick);tick=null;$timer.hidden=true;$timer.classList.remove('low')}
+function startTimer(sec,onEnd){stopTimer();let left=sec;$timer.hidden=false;const draw=()=>{const m=Math.floor(left/60),s=left%60;$timer.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');$timer.classList.toggle('low',left<=15)};draw();tick=setInterval(()=>{left--;draw();if(left<=0){stopTimer();onEnd&&onEnd()}},1000)}
+function view(h){$app.innerHTML=h;window.scrollTo(0,0)}
+function fecha(d){return d.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long'})+' a las '+d.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})}
+function wa(t){return 'https://wa.me/'+WA+'?text='+encodeURIComponent(t)}
+
+/* ---------- Banco de preguntas ---------- */
+const BANK=[
+ // Presentación y motivación
+ {c:'Presentación y motivación',q:'Preséntese en un minuto: quién es, de dónde viene y qué ha logrado.',g:'Nombre, ciudad, estudios, uno o dos logros concretos y por qué está aquí. Mire al tribunal; no recite.'},
+ {c:'Presentación y motivación',q:'¿Por qué quiere ser militar?',g:'Una razón propia con hechos: una experiencia, una persona, un interés sostenido. Evite «por estabilidad» o «por el uniforme» como única razón.'},
+ {c:'Presentación y motivación',q:'¿Por qué eligió esta fuerza y esta escuela?',g:'Demuestre que se informó: misión de la institución, carrera que le interesa y por qué encaja con usted.'},
+ {c:'Presentación y motivación',q:'¿Desde cuándo tiene esta vocación y qué ha hecho para prepararse?',g:'Una línea de tiempo breve: cuándo nació el interés y qué acciones concretas ha tomado (entrenamiento, estudio, información).'},
+ {c:'Presentación y motivación',q:'Si no ingresa este año, ¿qué hará?',g:'Muestre persistencia y un plan B serio (seguir preparándose, estudiar, volver a postular). Evite el dramatismo.'},
+ {c:'Presentación y motivación',q:'¿Dónde se ve dentro de diez años?',g:'Metas realistas de formación, especialización y servicio. Evite respuestas solo económicas.'},
+ // Conocimiento institucional
+ {c:'Conocimiento de la institución',q:'¿Qué conoce de la misión de la institución a la que postula?',g:'Una idea clara de su misión y su rol en el país, en sus palabras. No memorice textos largos.'},
+ {c:'Conocimiento de la institución',q:'¿Qué sabe de la vida en la escuela de formación?',g:'Internado, disciplina, horarios estrictos, exigencia física y académica, vida en comunidad. Diga cómo se ha preparado para eso.'},
+ {c:'Conocimiento de la institución',q:'¿Qué valores cree que son los más importantes para un militar?',g:'Elija dos o tres (honor, disciplina, lealtad, servicio) y dé un ejemplo personal de cada uno.'},
+ {c:'Conocimiento de la institución',q:'¿Qué será lo más difícil para usted durante la formación?',g:'Una dificultad real (estar lejos de casa, el ritmo físico) y cómo la enfrentará.'},
+ // Autoconocimiento
+ {c:'Autoconocimiento',q:'Mencione tres fortalezas suyas con un ejemplo de cada una.',g:'Cada fortaleza respaldada por un hecho. Tres ejemplos breves valen más que una lista.'},
+ {c:'Autoconocimiento',q:'¿Cuál es un aspecto que necesita mejorar?',g:'Una debilidad real, no disfrazada de virtud, y lo que ya hace para mejorarla.'},
+ {c:'Autoconocimiento',q:'¿Cómo lo describirían sus amigos o profesores?',g:'Coherente con lo que ya dijo de sí mismo. Puede añadir un rasgo que lo haga humano.'},
+ {c:'Autoconocimiento',q:'¿Qué es lo que más le enorgullece de su vida hasta hoy?',g:'Un logro concreto que dependió de su esfuerzo. Use STAR.'},
+ {c:'Autoconocimiento',q:'¿Qué le hace perder la paciencia y cómo lo maneja?',g:'Sinceridad sobre un detonante real y una estrategia de autocontrol que ya usa.'},
+ // Disciplina
+ {c:'Disciplina y normas',q:'Cuénteme una ocasión en que cumplió una norma con la que no estaba de acuerdo.',g:'STAR: cumplió, expresó su opinión por el canal adecuado y aprendió algo.'},
+ {c:'Disciplina y normas',q:'¿Cómo organiza su día para cumplir con estudio y entrenamiento?',g:'Horarios, prioridades y un ejemplo de constancia. Sea específico.'},
+ {c:'Disciplina y normas',q:'¿Qué opina de recibir órdenes sin que le expliquen el porqué?',g:'Comprenda el valor de la cadena de mando y la confianza; muestre madurez, no obediencia ciega ni rebeldía.'},
+ {c:'Disciplina y normas',q:'¿Alguna vez ha tenido problemas de disciplina en el colegio o el trabajo?',g:'Diga la verdad. Si ocurrió, explique qué pasó, qué aprendió y qué cambió. Mentir aquí es lo más grave.'},
+ // Equipo y liderazgo
+ {c:'Trabajo en equipo y liderazgo',q:'Cuénteme una experiencia de trabajo en equipo para lograr algo difícil.',g:'STAR: su rol concreto, qué hizo usted y el resultado. Reconozca el aporte de los demás.'},
+ {c:'Trabajo en equipo y liderazgo',q:'¿Qué hace cuando un compañero no cumple su parte?',g:'Diálogo directo y respetuoso, apoyo y, si persiste, informar por el canal adecuado.'},
+ {c:'Trabajo en equipo y liderazgo',q:'Hábleme de una vez en que tuvo que dirigir a otras personas.',g:'Colegio, deporte, familia o trabajo. Qué decidió, cómo motivó y qué logró.'},
+ {c:'Trabajo en equipo y liderazgo',q:'¿Prefiere mandar u obedecer? ¿Por qué?',g:'Un buen líder primero sabe obedecer. Muestre equilibrio y ejemplos de ambos roles.'},
+ // Presión
+ {c:'Presión y frustración',q:'Cuénteme un fracaso importante y qué hizo después.',g:'Reconozca el error sin culpar a otros; explique qué aprendió y qué cambió.'},
+ {c:'Presión y frustración',q:'¿Cómo reacciona ante una crítica o una llamada de atención?',g:'Escucha, no se justifica de inmediato, corrige. Un ejemplo concreto da credibilidad.'},
+ {c:'Presión y frustración',q:'¿Qué hace para controlar los nervios bajo presión?',g:'Estrategias reales (respiración, preparación, descanso) y una situación en que le funcionaron.'},
+ {c:'Presión y frustración',q:'Está cansado, con hambre y le ordenan repetir un ejercicio. ¿Cómo reacciona?',g:'Control emocional, cumplimiento y sentido del propósito. Evite respuestas heroicas poco creíbles.'},
+ // Integridad
+ {c:'Integridad y ética',q:'¿Qué haría si ve a un compañero copiando en un examen?',g:'Coherencia con la honestidad: hablar con él y, si corresponde, informar. Evite respuestas extremas o evasivas.'},
+ {c:'Integridad y ética',q:'Cuénteme una situación en que decir la verdad le costó algo.',g:'Un hecho real. La entrevista valora la integridad más que una historia perfecta.'},
+ {c:'Integridad y ética',q:'Un superior le pide algo que usted considera incorrecto. ¿Qué hace?',g:'Respeto, pero apego a la ley y a los valores: pedir aclaración y usar el canal reglamentario.'},
+ {c:'Integridad y ética',q:'¿Alguna vez ha consumido alcohol o sustancias? ¿Con qué frecuencia?',g:'Responda con la verdad y con serenidad. La coherencia entre entrevista, pruebas y documentos es clave.'},
+ // Familia
+ {c:'Familia y entorno',q:'¿Qué opina su familia de su decisión de postular?',g:'Con naturalidad y verdad. Si hay dudas en casa, explique cómo las han conversado.'},
+ {c:'Familia y entorno',q:'¿Cómo es la relación con sus padres y hermanos?',g:'Sinceridad sin entrar en detalles íntimos innecesarios. Resalte apoyos y responsabilidades.'},
+ {c:'Familia y entorno',q:'¿Cómo ocupa su tiempo libre?',g:'Actividades reales. Si practica deporte o voluntariado, diga desde cuándo y con qué constancia.'},
+ {c:'Familia y entorno',q:'¿Tiene pareja? ¿Cómo influye en su decisión?',g:'Respuesta breve y honesta. Muestre que la decisión es suya y que ha conversado las implicaciones.'},
+ // Situacionales
+ {c:'Situacionales',q:'En una guardia nocturna ve que su compañero se quedó dormido. ¿Qué hace?',g:'Despertarlo, cumplir el servicio y, según la gravedad, informar. Responsabilidad sobre la amistad.'},
+ {c:'Situacionales',q:'Encuentra dinero en un área común de la escuela. ¿Qué hace?',g:'Entregarlo al superior o al área correspondiente. Sin dudar.'},
+ {c:'Situacionales',q:'Un compañero de promoción es objeto de burlas constantes. ¿Qué hace?',g:'No participar, apoyar al compañero y reportar por el canal adecuado. Muestra empatía y valor.'},
+ {c:'Situacionales',q:'Le asignan una tarea que no sabe hacer y no hay tiempo de preguntar. ¿Qué hace?',g:'Iniciativa con criterio: usar lo que sabe, pedir apoyo a un compañero y reportar al terminar.'},
+ // Profesionales
+ {c:'Profesionales (oficial especialista)',q:'¿Por qué dejaría su ejercicio profesional civil para ingresar?',g:'Motivación de servicio y desarrollo con hechos. Muestre que conoce lo que implica la vida militar.',p:1},
+ {c:'Profesionales (oficial especialista)',q:'¿Cómo aportaría su profesión a la institución?',g:'Conecte su formación y experiencia con necesidades concretas de la institución.',p:1},
+ {c:'Profesionales (oficial especialista)',q:'Hábleme de un logro profesional del que se sienta orgulloso.',g:'STAR con resultados medibles cuando sea posible.',p:1},
+ {c:'Profesionales (oficial especialista)',q:'¿Cómo se adaptará a recibir órdenes siendo un profesional con experiencia?',g:'Humildad, disposición a aprender y respeto por la jerarquía; ejemplo de adaptación previa.',p:1},
+ // Cierre
+ {c:'Cierre',q:'¿Hay algo más que quiera decirnos?',g:'Un cierre breve: reafirme su motivación en una frase y agradezca. No repita todo.'},
+ {c:'Cierre',q:'¿Tiene alguna pregunta para el tribunal?',g:'Una pregunta breve y pertinente sobre la formación demuestra interés. Evite preguntar por sueldo o vacaciones.'}
+];
+const CRIT=[
+ ['Claridad','Ideas ordenadas, frases completas, va al punto'],
+ ['Estructura STAR','Situación, tarea, acción en primera persona y resultado'],
+ ['Evidencia','Ejemplos reales y concretos, no generalidades'],
+ ['Coherencia y honestidad','Coincide con su historia; reconoce límites sin inventar'],
+ ['Comunicación no verbal','Postura, contacto visual, voz y ritmo']
+];
+const LV=['Débil','Básico','Bueno','Muy bueno'];
+const HIST_STAR=[
+ ['Un logro personal','Algo que consiguió con esfuerzo propio'],
+ ['Un trabajo en equipo','Un objetivo logrado con otros'],
+ ['Un fracaso y lo que aprendió','Un error real y su corrección'],
+ ['Una vez que lideró','Cuando dirigió o motivó a otros'],
+ ['Una situación de presión','Cuando mantuvo la calma'],
+ ['Una decisión ética','Cuando eligió la verdad o lo correcto']
+];
+const DIA=[
+ 'Confirmé fecha, hora, lugar y documentos requeridos en la convocatoria oficial',
+ 'Preparé la ropa la noche anterior (formal, limpia, planchada, zapatos lustrados)',
+ 'Dormí al menos 7 horas y desayuné liviano',
+ 'Llegaré 30 minutos antes y con el celular en silencio',
+ 'Repasé mi presentación de un minuto y mis 6 historias STAR, sin memorizar textos',
+ 'Saludaré con firmeza, esperaré a que me indiquen sentarme y mantendré buena postura',
+ 'Miraré a quien me pregunta y responderé con calma; si no entiendo, pediré que repitan',
+ 'Responderé con la verdad, coherente con mis formularios y pruebas',
+ 'Al terminar, agradeceré y me despediré con respeto'
+];
+let hist=store.get('hist',[]);
+
+/* ---------- Pantallas ---------- */
+let VENCE=null;
+function cabecera(){return VENCE?`<p><span class="badge">Acceso activo hasta el ${esc(fecha(VENCE))}</span></p>`:''}
+function home(){stopTimer();
+ view(`<div class="stack"><span class="eyebrow">Alumnos · Preparación para la Entrevista Personal de Ingreso</span><h1>Simulador de Entrevista PRO</h1>${cabecera()}
+ <p class="lead">Entrene como si estuviera frente al tribunal: ${BANK.length} preguntas por categoría, simulacro completo con tiempo, sus historias STAR y la lista de control del día de la entrevista.</p>
+ <div class="stations">
+  <div class="station"><span class="num">1</span><h3>Simulacro completo de tribunal</h3><p>Diez preguntas variadas, 20 s para pensar y 2 min por respuesta. Al final, autoevaluación y resumen para su asesor.</p><div class="row"><button class="btn" data-go="sim-b">Soy bachiller</button><button class="btn ghost" data-go="sim-p">Soy profesional</button></div></div>
+  <div class="station"><span class="num">2</span><h3>Práctica por categoría</h3><p>Elija un tema (motivación, disciplina, integridad, situaciones…) y practique solo esas preguntas.</p><button class="btn" data-go="cat">Elegir categoría</button></div>
+  <div class="station"><span class="num">3</span><h3>Mis 6 historias STAR</h3><p>Prepare por escrito las seis experiencias que responden casi cualquier pregunta. Se guardan en este dispositivo.</p><button class="btn ghost" data-go="stories">Preparar</button></div>
+  <div class="station"><span class="num">4</span><h3>Presentación de un minuto</h3><p>Cronometre la respuesta que casi siempre abre la entrevista.</p><button class="btn ghost" data-go="pitch">Practicar</button></div>
+  <div class="station"><span class="num">5</span><h3>Banco con orientaciones</h3><p>Todas las preguntas con la orientación para preparar cada respuesta.</p><button class="btn ghost" data-go="bank">Ver banco</button></div>
+  <div class="station"><span class="num">6</span><h3>El día de la entrevista</h3><p>Lista de control para no olvidar nada la noche anterior y en la mañana.</p><button class="btn ghost" data-go="dia">Abrir lista</button></div>
+ </div>
+ <p class="notice">Grábese con el celular mientras responde y revise el video antes de autoevaluarse. Envíe su resumen a su asesor antes de cada sesión.</p>
+ ${hist.length?`<div class="panel stack"><h3>Mis simulacros</h3><div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Preguntas</th><th>Promedio</th></tr></thead><tbody>${hist.slice(-6).reverse().map(h=>`<tr><td>${new Date(h.d).toLocaleDateString('es-EC')}</td><td>${h.n}</td><td>${h.avg.toFixed(1)} / 4</td></tr>`).join('')}</tbody></table></div></div>`:''}
+ </div>`)}
+
+function bank(){const cats=[...new Set(BANK.map(b=>b.c))];
+ view(`<div class="stack"><span class="eyebrow">Banco de preguntas</span><h2>${BANK.length} preguntas con orientación</h2><p class="lead">Prepare una idea central y un ejemplo real para cada una. No memorice textos completos.</p>
+ ${cats.map(c=>`<div class="panel stack"><h3>${esc(c)}</h3>${BANK.filter(b=>b.c===c).map(b=>`<div class="stack" style="gap:4px"><b>${esc(b.q)}</b><span class="small">${esc(b.g)}</span></div>`).join('')}</div>`).join('')}
+ <div class="row"><button class="btn" data-go="home">Volver</button></div></div>`)}
+
+function cat(){const cats=[...new Set(BANK.map(b=>b.c))].filter(c=>c!=='Cierre');
+ view(`<div class="stack"><span class="eyebrow">Práctica por categoría</span><h2>¿Qué quiere entrenar?</h2>
+ <div class="stations">${cats.map((c,i)=>`<div class="station"><h3>${esc(c)}</h3><p>${BANK.filter(b=>b.c===c).length} preguntas</p><button class="btn" data-cat="${i}">Practicar</button></div>`).join('')}</div>
+ <div class="row"><button class="btn ghost" data-go="home">Volver</button></div></div>`);
+ $app.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>run(BANK.filter(x=>x.c===cats[+b.dataset.cat]),cats[+b.dataset.cat]))}
+
+function stories(){const s=store.get('stories',{});
+ view(`<div class="stack"><span class="eyebrow">Preparación</span><h2>Mis 6 historias STAR</h2><p class="lead">Escriba palabras clave para cada parte. Con estas seis historias puede responder la mayoría de preguntas de comportamiento.</p>
+ ${HIST_STAR.map((h,k)=>`<div class="panel stack"><h3>${k+1}. ${h[0]}</h3><p class="small">${h[1]}</p>${['Situación','Tarea','Acción','Resultado'].map((p,j)=>`<label><b>${p}</b><input type="text" data-s="${k}-${j}" value="${esc((s[k+'-'+j])||'')}"></label>`).join('')}</div>`).join('')}
+ <p class="small">Se guarda automáticamente en este dispositivo.</p><div class="row"><button class="btn" data-go="home">Volver</button></div></div>`);
+ $app.querySelectorAll('[data-s]').forEach(i=>i.oninput=()=>{s[i.dataset.s]=i.value;store.set('stories',s)})}
+
+function dia(){const ck=store.get('dia',{});
+ view(`<div class="stack"><span class="eyebrow">Lista de control</span><h2>El día de la entrevista</h2>
+ <div class="panel">${DIA.map((d,k)=>`<label class="check"><input type="checkbox" data-d="${k}" ${ck[k]?'checked':''}><span>${esc(d)}</span></label>`).join('')}</div>
+ <div class="row"><button class="btn" data-go="home">Volver</button></div></div>`);
+ $app.querySelectorAll('[data-d]').forEach(i=>i.onchange=()=>{ck[i.dataset.d]=i.checked;store.set('dia',ck)})}
+
+function pitch(){view(`<div class="stack"><span class="eyebrow">Ejercicio</span><h2>Presentación de un minuto</h2>
+ <div class="panel stack"><h3>Estructura sugerida</h3><ul class="clean"><li>Saludo y nombre completo.</li><li>De dónde es y qué estudia o en qué trabaja.</li><li>Uno o dos logros concretos (académicos, deportivos, de servicio).</li><li>Por qué postula, con una razón propia.</li><li>Cierre breve y cordial.</li></ul></div>
+ <label for="pnotes"><b>Sus notas (palabras clave, no un texto para leer)</b></label><textarea id="pnotes" style="min-height:110px">${esc(store.get('pitch',''))}</textarea>
+ <p class="small" id="pmsg">Presione «Empezar» y hable en voz alta. Ideal: entre 50 y 70 segundos.</p>
+ <div class="row"><button class="btn gold" id="pgo">Empezar 60 segundos</button><button class="btn ghost" data-go="home">Volver</button></div></div>`);
+ const ta=document.getElementById('pnotes');ta.oninput=()=>store.set('pitch',ta.value);
+ document.getElementById('pgo').onclick=()=>{document.getElementById('pmsg').textContent='Hablando… mire a la cámara o a un punto fijo, no a sus notas.';startTimer(60,()=>{document.getElementById('pmsg').textContent='Tiempo. ¿Terminó con naturalidad? ¿Mencionó un logro concreto y una razón propia? Repita hasta que fluya sin leer.'})}}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function simulacro(prof){const pool=BANK.filter(b=>prof||!b.p);const first=BANK[0];
+ const cats=[...new Set(pool.map(b=>b.c))].filter(c=>c!=='Cierre'&&c!=='Presentación y motivación');
+ const picked=shuffle(cats).slice(0,8).map(c=>shuffle(pool.filter(b=>b.c===c))[0]);
+ if(prof&&!picked.some(q=>q.p)){picked[picked.length-1]=shuffle(pool.filter(b=>b.p))[0]}
+ run([first,BANK[1],...picked.slice(0,7),BANK[BANK.length-2]],'Simulacro completo')}
+
+function run(qs,titulo){stopTimer();const sc=[];let i=0;
+ function ask(){const Q=qs[i];
+  view(`<div class="stack"><span class="eyebrow">${esc(titulo)} · Pregunta ${i+1} de ${qs.length} · ${esc(Q.c)}</span><div class="progress"><i style="width:${(i+1)/qs.length*100}%"></i></div>
+   <p class="q" style="font-size:1.4rem">${esc(Q.q)}</p>
+   <p class="small" id="st">Tiene 20 segundos para pensar. Luego responda en voz alta (máximo 2 minutos).</p>
+   <div class="row"><button class="btn gold" id="think">Pensar 20 s</button><button class="btn" id="ans">Responder ahora</button><button class="btn ghost" data-go="home">Salir</button></div>
+   <details class="panel"><summary>Ver orientación (después de responder)</summary><p class="small" style="margin-top:8px">${esc(Q.g)}</p></details></div>`);
+  const go=()=>{document.getElementById('st').textContent='Responda en voz alta. Presione «Terminé» al acabar.';document.getElementById('think').hidden=true;const b=document.getElementById('ans');b.textContent='Terminé';b.onclick=()=>{stopTimer();rate()};startTimer(120,rate)};
+  document.getElementById('think').onclick=()=>{document.getElementById('st').textContent='Piense en una situación real y su estructura STAR…';startTimer(20,go)};
+  document.getElementById('ans').onclick=go}
+ function rate(){stopTimer();const Q=qs[i];const r=new Array(CRIT.length).fill(null);
+  view(`<div class="stack"><span class="eyebrow">Autoevaluación · Pregunta ${i+1}</span><p class="q">${esc(Q.q)}</p><p class="small"><b>Orientación:</b> ${esc(Q.g)}</p>
+   ${CRIT.map((c,k)=>`<div class="pitem"><span><b>${c[0]}</b> <span class="small">· ${c[1]}</span></span><div class="likert" style="grid-template-columns:repeat(4,1fr)">${LV.map((l,v)=>`<button data-k="${k}" data-v="${v+1}">${l}</button>`).join('')}</div></div>`).join('')}
+   <p class="small" id="msg"></p><div class="row"><button class="btn" id="nx">${i<qs.length-1?'Siguiente pregunta':'Ver resultados'}</button></div></div>`);
+  $app.querySelectorAll('.likert button').forEach(b=>b.onclick=()=>{r[+b.dataset.k]=+b.dataset.v;b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x===b))});
+  document.getElementById('nx').onclick=()=>{if(r.includes(null)){document.getElementById('msg').textContent='Califique los cinco criterios.';return}sc.push({q:Q.q,r});i++;if(i<qs.length)ask();else done()}}
+ function done(){const avgC=CRIT.map((c,k)=>sc.reduce((s,x)=>s+x.r[k],0)/sc.length);const avg=avgC.reduce((a,b)=>a+b,0)/avgC.length;
+  hist.push({d:new Date().toISOString(),n:sc.length,avg});store.set('hist',hist);
+  const weak=CRIT.map((c,k)=>[c[0],avgC[k]]).sort((a,b)=>a[1]-b[1]).slice(0,2);
+  const low=sc.map(x=>[x.q,x.r.reduce((a,b)=>a+b,0)/x.r.length]).sort((a,b)=>a[1]-b[1]).slice(0,3);
+  const txt=['Simulador de Entrevista PRO · CENVIT · '+new Date().toLocaleDateString('es-EC'),titulo+' · '+sc.length+' preguntas','Promedio general: '+avg.toFixed(1)+' / 4',...CRIT.map((c,k)=>'- '+c[0]+': '+avgC[k].toFixed(1)),'Preguntas a reforzar:',...low.map(l=>'- '+l[0])].join('\n');
+  view(`<div class="stack"><span class="eyebrow">Resultados</span><h2>Promedio: ${avg.toFixed(1)} de 4</h2>
+   <div class="panel tablewrap"><table><thead><tr><th>Criterio</th><th>Promedio</th><th>Nivel</th></tr></thead><tbody>${CRIT.map((c,k)=>`<tr><td>${c[0]}</td><td>${avgC[k].toFixed(1)}</td><td><div class="bar"><i style="width:${avgC[k]/4*100}%"></i></div></td></tr>`).join('')}</tbody></table></div>
+   <div class="panel stack"><h3>Para su próxima práctica</h3><p>Reforzar: <b>${weak.map(w=>w[0]).join('</b> y <b>')}</b>.</p><p>Preguntas a preparar de nuevo:</p><ul class="clean">${low.map(l=>`<li>${esc(l[0])}</li>`).join('')}</ul></div>
+   <label for="sum"><b>Resumen para su asesor</b></label><textarea id="sum" readonly>${esc(txt)}</textarea>
+   <div class="row"><a class="btn gold" style="text-decoration:none" target="_blank" rel="noopener" href="${wa(txt)}">Enviar a mi asesor por WhatsApp</a><button class="btn" data-go="home">Inicio</button></div></div>`)}
+ ask()}
+
+const ROUTES={home,bank,cat,stories,dia,pitch,'sim-b':()=>simulacro(false),'sim-p':()=>simulacro(true)};
+$app.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){stopTimer();(ROUTES[b.dataset.go]||home)()}});
+
+/* ---------- Control de acceso: alumnos con compra aprobada, 7 días desde la compra ---------- */
+function bloqueo(titulo,texto,botones){view(`<div class="lock stack"><img src="/psicometria/assets/logo-cenvit.png" alt="" style="width:72px;margin:0 auto"><h2>${titulo}</h2><p class="lead" style="margin:0 auto">${texto}</p><div class="row" style="justify-content:center">${botones}</div></div>`)}
+async function acceso(){
+ try{
+  const me=await fetch('/api/auth/me',{credentials:'include'});
+  if(!me.ok){bloqueo('Inicie sesión para continuar','Este simulador es exclusivo para alumnos de la Preparación para la Entrevista Personal de Ingreso.',`<a class="btn" style="text-decoration:none" href="/login?redirect=${encodeURIComponent(location.pathname)}">Iniciar sesión</a><a class="btn ghost" style="text-decoration:none" href="/curso/5802">Ver el programa</a>`);return}
+  const u=await me.json();
+  if(u.role==='admin'||u.role==='instructor'){home();return}
+  const r=await fetch('/api/purchases',{credentials:'include'});const ps=r.ok?await r.json():[];
+  const ok=ps.filter(p=>p.course&&CURSOS.includes(p.course.id)&&/complet|aprob|approved|paid/i.test(p.status||''));
+  if(!ok.length){bloqueo('Acceso solo para alumnos','Su cuenta todavía no tiene la Preparación para la Entrevista Personal de Ingreso. Si ya pagó por transferencia, su acceso se activa cuando se aprueba el pago.',`<a class="btn" style="text-decoration:none" href="/curso/5802">Ver el programa</a><a class="btn ghost" style="text-decoration:none" target="_blank" rel="noopener" href="${wa('Hola CENVIT, ya pagué la Preparación para la Entrevista y necesito activar el simulador.')}">Escribir por WhatsApp</a>`);return}
+  const ini=new Date(Math.max(...ok.map(p=>new Date(p.purchasedAt||p.createdAt).getTime())));
+  VENCE=new Date(ini.getTime()+DIAS_ACCESO*864e5);
+  // Ampliaciones que otorga el administrador: site-setting entrevista_pro_ampliaciones = {"<id de usuario>":"AAAA-MM-DD"}
+  try{const st=await (await fetch('/api/site-settings')).json();const amp=JSON.parse(st.entrevista_pro_ampliaciones||'{}')[String(u.id)];
+   if(amp){const f=new Date(amp+'T23:59:59');if(!isNaN(f)&&f>VENCE)VENCE=f}}catch(e){}
+  if(Date.now()>VENCE.getTime()){bloqueo('Su semana de acceso terminó',`Su acceso al simulador fue válido hasta el ${esc(fecha(VENCE))}; si su entrevista se reprogramó, escríbanos y lo ampliamos.`,`<a class="btn gold" style="text-decoration:none" target="_blank" rel="noopener" href="${wa('Hola CENVIT, mi acceso al Simulador de Entrevista PRO venció y mi entrevista es el día ___. ¿Pueden ampliarlo?')}">Pedir ampliación</a>`);return}
+  home();
+ }catch(e){bloqueo('No pudimos verificar su acceso','Revise su conexión e intente de nuevo.',`<button class="btn" onclick="location.reload()">Reintentar</button>`)}
+}
+acceso();
+})();
+</script>
+</body>
+</html>
